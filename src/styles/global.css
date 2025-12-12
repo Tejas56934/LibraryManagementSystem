@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+/* ---------------------------------------------------------------------- */
+/* --- MODERN & USER-FRIENDLY COLOR VARIABLES (Teal & Gold Palette) --- */
+/* ---------------------------------------------------------------------- */
+:root {
+  /* Base Colors (Muted Teal/Aqua & Soft Gold) */
+  --color-primary: #00897B; /* Muted Teal/Aqua for main actions/accents (High-contrast, professional) */
+  --color-accent: #FFB300; /* Soft Gold/Amber for secondary actions/highlights */
+  --color-danger: #E53935; /* Standard Red for errors */
+
+  /* Background/Text (Subtle Off-White Light Mode) */
+  --color-background: #F5F5F5; /* Very light gray/Off-white for soft background */
+  --color-surface: #FFFFFF; /* Primary clean white surface/container color */
+  --color-card: #ECEFF1; /* Lightest blue-gray for cards/panels (Subtle lift) */
+  --color-text: #263238; /* Dark Charcoal text (Excellent readability) */
+  --color-secondary-text: #78909C; /* Muted cool gray text */
+
+  /* Spacing/Design */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 40px;
+  --border-radius: 10px; /* Modern, balanced rounding */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06); /* Very subtle light shadow */
+  --shadow-md: 0 6px 15px rgba(0, 0, 0, 0.1); /* Clean, defined shadow for depth */
+}
+
+/* ---------------------------------------------------------------------- */
+/* --- GLOBAL RESET & BASE STYLES --- */
+/* ---------------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
+  padding: var(--spacing-md);
+}
+
+/* ---------------------------------------------------------------------- */
+/* --- UTILITY CLASSES & COMPONENTS --- */
+/* ---------------------------------------------------------------------- */
+.flex-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Component: Card Style */
+.card {
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-card); /* Subtle border for definition */
+    margin-bottom: var(--spacing-md);
+}
+
+h1, h2, h3, h4 {
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Component: Button Styling */
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-surface); /* White text on Teal */
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background-color: #00695C; /* Darker Teal on hover */
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+.btn-secondary:hover {
+    background-color: #FFC107;
+}
+
+/* ---------------------------------------------------------------------- */
+/* --- TABLE STYLING (Clean and High Contrast) --- */
+/* ---------------------------------------------------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-surface);
+}
+
+th, td {
+  padding: 14px var(--spacing-md);
+  text-align: left;
+  /* Use a very light line for separation */
+  border-bottom: 1px solid var(--color-card);
+}
+
+thead th {
+  background-color: var(--color-card); /* Light Blue-Gray Header */
+  color: var(--color-secondary-text);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+tbody tr:hover {
+    background-color: #E0F2F1; /* Very light Teal background on hover */
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
