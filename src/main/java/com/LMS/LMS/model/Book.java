@@ -19,11 +19,20 @@ public class Book {
     private String title;
     private String author;
     private String isbn;
-    private int totalStock;
-    private int availableStock;
+
+    private long totalStock;    // Changed to long for consistency
+    private long availableStock; // Changed to long for consistency
+
     private String category;
     private double price; // For procurement tracking
     private LocalDateTime dateAdded = LocalDateTime.now();
+
+    // --- NEW FIELDS FOR SHELF MANAGEMENT (Requirement: Find Book) ---
+    /**
+     * Unique identifier for the exact physical shelving location (e.g., Aisle-03-R2-S1).
+     * This links the book to the Shelf entity which holds the physical map coordinates.
+     */
+    private String shelfCode;
 
     public boolean isAvailable() {
         return availableStock > 0;

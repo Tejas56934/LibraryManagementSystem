@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId; // Needed for Instant to LocalDateTime conversion
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -50,7 +51,7 @@ public class NotificationService {
                 sendOverdueNotification(record);
             }
             // --- 2. REMINDER CHECK ---
-            else if (hoursUntilDue <= REMINDER_WINDOW_HOURS && !record.isNotificationSent()) {
+            else if (hoursUntilDue > 0 && hoursUntilDue <= REMINDER_WINDOW_HOURS && !record.isNotificationSent()) {
                 // Send reminder if due soon AND we haven't sent the reminder yet.
                 sendReminderNotification(record, hoursUntilDue);
             }
@@ -128,20 +129,59 @@ public class NotificationService {
         } else if (type.equals("REMINDER")) {
             message = String.format("REMINDER: Book ID %s is due in %s.", record.getBookId(), detail);
         } else {
-            // This is likely the spot where the compiler is failing.
-            // The original code was: message = String.format("CRITICAL: Book ID %s stock is low.", record.getRelatedId());
-            // Since we are passing a BorrowRecord, we can only access its fields.
-            message = String.format("CRITICAL: Book ID %s stock is low.", record.getBookId());
+            // Default message for generic alerts not handled above
+            message = String.format("ALERT: Borrow record %s related notification.", record.getBookId());
         }
 
         LibrarianAlert alert = new LibrarianAlert();
         alert.setType(type);
         alert.setMessage(message);
-
-        // ✅ FIX: Use a valid field from the BorrowRecord, such as bookId, for the related ID.
         alert.setRelatedId(record.getBookId());
-
         alertRepository.save(alert);
+    }
+
+    // --- NEW METHOD FOR REQUIREMENT 7 (RESERVATION) ---
+
+    /**
+     * Sends notification to the student that their reserved book is READY FOR PICKUP.
+     * Called by ReservationService.processReturnedBook().
+     */
+    public void sendReservationReadyNotification(Reservation reservation) {
+        Optional<Student> studentOpt = studentRepository.findByStudentId(reservation.getStudentId());
+
+        if (studentOpt.isPresent()) {
+            Student student = studentOpt.get();
+
+            // Format expiry time from Instant to a user-friendly string
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm");
+            LocalDateTime localExpiry = reservation.getExpiryDate().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            String expiryString = localExpiry.format(formatter);
+
+            String subject = "✅ Your Reserved Book is Ready for Pickup!";
+            String body = String.format(
+                    "Dear %s,\n\nThe book you reserved (ID: %s) is now available for pickup at the library desk. " +
+                            "Please pick it up before the hold expires on %s. If not picked up by this time, your reservation will be passed to the next waiting student.",
+                    student.getName(), reservation.getBookId(), expiryString
+            );
+
+            // 1. External Alerts
+            emailUtil.sendEmail(student.getEmail(), subject, body);
+            emailUtil.sendExternalNotification(student.getPhoneNumber(), "READY: Reserved book (ID: " + reservation.getBookId() + ") is ready for pickup!");
+
+            // 2. Internal Librarian Alert
+            String alertMessage = String.format(
+                    "Reservation Ready: Book ID %s is held for student %s. Expires: %s",
+                    reservation.getBookId(), student.getName(), expiryString
+            );
+
+            LibrarianAlert alert = new LibrarianAlert();
+            alert.setType("RESERVATION_READY");
+            alert.setMessage(alertMessage);
+            alert.setRelatedId(reservation.getBookId());
+            alertRepository.save(alert);
+
+            System.out.println("LIBRARIAN ALERT SAVED: " + alertMessage);
+        }
     }
 
     // --- Other Triggers ---
@@ -158,8 +198,10 @@ public class NotificationService {
         System.out.println("LIBRARIAN AI ALERT SAVED: " + message);
     }
 
+    // This method is now implicitly handled by the new sendReservationReadyNotification saving the alert.
+    // However, if reservation logic needs an independent internal trigger, this placeholder remains.
     public void triggerReservationAlert(Reservation reservation) {
-        // ... (Logic remains the same, but it should also save a LibrarianAlert here)
+        // This can be used for secondary alerts if the student hasn't picked up the book and it's close to expiry.
         System.out.println("LIBRARIAN ALERT: Reservation fulfilled for student " + reservation.getStudentId());
     }
 }

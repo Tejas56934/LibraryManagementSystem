@@ -1,9 +1,9 @@
 package com.LMS.LMS.model;
 
-import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import java.time.LocalDateTime;
+import lombok.Data;
+import java.time.Instant;
 
 @Data
 @Document(collection = "reservations")
@@ -12,11 +12,20 @@ public class Reservation {
     @Id
     private String id;
 
-    private String bookId; // The unique ID of the book being reserved (BK-...)
-    private String studentId; // ID of the student making the reservation
+    private String bookId; // The ID of the book being reserved
+    private String studentId; // The ID of the student who placed the hold
 
-    private LocalDateTime reservationDate = LocalDateTime.now();
-    private LocalDateTime expiryDate; // Date by which the student must borrow the book once available
+    private Instant reservationDate = Instant.now();
+    private Instant expiryDate; // Date by which the student must pick up the book
 
-    private ReservationStatus status = ReservationStatus.PENDING; // PENDING, READY_FOR_PICKUP, FULFILLED, CANCELED
+    private ReservationStatus status;
+    private Integer queuePosition; // Calculated dynamically or stored for caching
+
+    public enum ReservationStatus {
+        WAITING,            // Book is currently issued to someone else
+        READY_FOR_PICKUP,   // Book has been returned and is waiting for this student
+        EXPIRED,            // Student failed to pick up the book in time
+        CANCELLED,          // Student cancelled the hold
+        FULFILLED           // Student successfully borrowed the book
+    }
 }

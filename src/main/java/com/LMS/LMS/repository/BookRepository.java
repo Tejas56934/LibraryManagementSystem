@@ -6,13 +6,25 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+// Make sure Optional is imported!
 
 @Repository
 public interface BookRepository extends MongoRepository<Book, String> {
-    // For searching by the unique, user-facing book ID (Requirement 2)
+
+    // Existing methods that were mentioned:
     Optional<Book> findByBookId(String bookId);
 
-    // For general search functionality
-    // This allows searching across title or author (case-insensitive)
     List<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(String title, String author);
+
+    // =========================================================================
+    // FIX: METHOD REQUIRED FOR ACQUISITION SERVICE (Requirement 9)
+    // =========================================================================
+
+    /**
+     * Finds a Book entity by its International Standard Book Number (ISBN).
+     * This is crucial for checking if a purchased book is new or an existing title.
+     */
+    Optional<Book> findByIsbn(String isbn);
+
+    // You may also need a method to search by ISBN, though the above one is for the service logic.
 }

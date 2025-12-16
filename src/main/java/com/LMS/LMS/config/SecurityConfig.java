@@ -3,6 +3,7 @@ package com.LMS.LMS.config;
 import com.LMS.LMS.util.JwtRequestFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // CRITICAL: Import HttpMethod
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,14 +25,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // ❌ REMOVED: @Autowired private AuthService authService;
-    // This was the remaining cause of the circular dependency.
-    // Spring Security will automatically locate AuthService (UserDetailsService).
-
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            // ✅ Fix applied: Injecting JwtRequestFilter via method parameter to break cycle.
             JwtRequestFilter jwtRequestFilter) throws Exception {
 
         http
@@ -43,18 +39,34 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         // 1. Public/Authentication Endpoints
-                        .requestMatchers("/api/v1/auth/**").permitAll() // Login/Registration
-                        .requestMatchers("/api/v1/books/available").permitAll() // Public Book Search (Requirement 6)
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/books/available").permitAll()
 
-                        // 2. CRITICAL: Administrative Endpoints
-                        // Requires the user to have the ADMIN role (e.g., /admin/students, /admin/borrow/issue)
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // 2. ACQUISITIONS & FEEDBACK (Req 8 & 9)
+                        // A. Students/Users can POST feedback/requests
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/feedback").authenticated() // <-- FIX 403 ERROR: Allows any logged-in user to submit
 
-                        // 3. Student Self-Service Endpoints (e.g., /student/reservations, /student/feedback)
-                        // Allows both Admin (Librarian) and Student roles to access self-service features.
-                        .requestMatchers("/api/v1/student/**").hasAnyRole("ADMIN", "STUDENT")
-
-                        // 4. Any other request must be authenticated (prevents unauthorized access to unspecified paths)
+                        // B. Librarians (Admin) manage requests and acquisitions
+                        .requestMatchers("/api/v1/admin/feedback/requests/**").hasAuthority("ROLE_ADMIN") // GET/PUT requests queue
+                        .requestMatchers("/api/v1/admin/acquisitions/**").hasAuthority("ROLE_ADMIN") // Orders and Vendors (Req 9)
+                        .requestMatchers("/api/v1/admin/shelf/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/v1/admin/shelf/location/**").hasAuthority("ROLE_ADMIN")
+                        // 3. RESERVATIONS (Req 7)
+                        // Students can place holds and view their own list
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reservations").hasAuthority("ROLE_STUDENT")
+                        .requestMatchers("/api/v1/reservations/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admin/feedback").authenticated()
+                        // 4. ADMIN FEATURES (Librarian CRUD, Issue/Return)
+                        // Requires the ADMIN role for inventory management, issuing books, etc.
+                        // I am removing your original broad rules and replacing them with specifics:
+                        .requestMatchers("/api/v1/students/import/**").hasAuthority("ROLE_ADMIN") // Student roster import
+                        .requestMatchers("/api/v1/books/import/**").hasAuthority("ROLE_ADMIN")     // Book inventory import
+                        .requestMatchers("/api/v1/students/**").hasAuthority("ROLE_ADMIN")         // Student CRUD
+                        .requestMatchers("/api/v1/books/**").hasAuthority("ROLE_ADMIN")            //Books CRUD
+                        .requestMatchers("/api/v1/borrow/**").hasAuthority("ROLE_ADMIN")          // Issue/Return
+                        .requestMatchers("/api/v1/report/**").hasAuthority("ROLE_ADMIN")          // Reporting
+                        .requestMatchers("/api/v1/admin/stock-status").hasAuthority("ROLE_ADMIN")
+                        // 5. Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
 
@@ -92,6 +104,7 @@ public class SecurityConfig {
 
     @Bean
     public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
+        // Ensure roles always start with 'ROLE_' when mapping authorities (CRITICAL)
         return (authorities) -> authorities.stream()
                 .map(authority -> {
                     String role = authority.getAuthority();
@@ -106,7 +119,6 @@ public class SecurityConfig {
     // Authentication Manager
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        // This bean uses the configured UserDetailsService (AuthService) and PasswordEncoder
         return authenticationConfiguration.getAuthenticationManager();
     }
 }

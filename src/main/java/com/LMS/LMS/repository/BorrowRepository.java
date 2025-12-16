@@ -18,4 +18,6 @@ public interface BorrowRepository extends MongoRepository<BorrowRecord, String> 
     List<BorrowRecord> findByBookIdAndStatus(String bookId, BorrowStatus status);
 
     List<BorrowRecord> findByStudentId(String studentId);
+
+    long countByBookIdAndStatus(String id, BorrowStatus borrowStatus);
 }

@@ -1,50 +1,58 @@
 package com.LMS.LMS.controller;
 
-import com.LMS.LMS.dto.FeedbackRequest;
 import com.LMS.LMS.model.Feedback;
+import com.LMS.LMS.model.Feedback.RequestStatus;
 import com.LMS.LMS.service.FeedbackService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/admin/feedback")
 public class FeedbackController {
 
+    private final FeedbackService feedbackService;
+
     @Autowired
-    private FeedbackService feedbackService;
-
-    // Requirement 8: Student submits Resource Not Found feedback (Role: STUDENT)
-    @PostMapping("/student/feedback")
-    public ResponseEntity<Feedback> submitFeedback(
-            @AuthenticationPrincipal UserDetails userDetails, // Get authenticated user details
-            @RequestBody FeedbackRequest request) {
-
-        // Assuming your Student ID is the same as the authenticated username
-        String studentId = userDetails.getUsername();
-        Feedback feedback = feedbackService.submitFeedback(studentId, request);
-        return ResponseEntity.ok(feedback);
+    public FeedbackController(FeedbackService feedbackService) {
+        this.feedbackService = feedbackService;
     }
 
-    // Requirement 9: Librarian views pending requests (Role: ADMIN)
-    @GetMapping("/admin/feedback/pending")
-    public ResponseEntity<List<Feedback>> getPendingFeedback() {
-        List<Feedback> feedbackList = feedbackService.getPendingFeedback();
-        return ResponseEntity.ok(feedbackList);
+    /**
+     * POST /api/v1/feedback
+     * Endpoint for students/users to submit any type of feedback (including ACQUISITION_REQUEST).
+     */
+    @PostMapping
+    public ResponseEntity<Feedback> submitFeedback(@RequestBody Feedback feedback) {
+        // NOTE: In a real application, security context would be used to set submitterId/Role
+        Feedback newFeedback = feedbackService.submitNewFeedback(feedback);
+        return new ResponseEntity<>(newFeedback, HttpStatus.CREATED);
     }
 
-    // Requirement 9: Librarian updates status (Procurement decision) (Role: ADMIN)
-    @PutMapping("/admin/feedback/{feedbackId}")
-    public ResponseEntity<Feedback> updateFeedbackStatus(
-            @PathVariable String feedbackId,
-            @RequestParam String status,
-            @RequestParam(required = false) String notes) {
+    /**
+     * GET /api/v1/feedback/requests
+     * Endpoint for Librarians to view all pending acquisition requests (Req 8).
+     */
+    @GetMapping("/requests")
+    public ResponseEntity<List<Feedback>> getAllAcquisitionRequests() {
+        // NOTE: This endpoint should be protected by Spring Security for ADMIN only
+        List<Feedback> requests = feedbackService.getAllAcquisitionRequests();
+        return ResponseEntity.ok(requests);
+    }
 
-        Feedback updatedFeedback = feedbackService.updateFeedbackStatus(feedbackId, status, notes);
-        return ResponseEntity.ok(updatedFeedback);
+    /**
+     * PUT /api/v1/feedback/requests/{id}/status
+     * Endpoint for Librarians to update the status of a request.
+     */
+    @PutMapping("/requests/{id}/status")
+    public ResponseEntity<Feedback> updateRequestStatus(
+            @PathVariable String id,
+            @RequestParam RequestStatus status) {
+
+        Feedback updatedRequest = feedbackService.updateRequestStatus(id, status);
+        return ResponseEntity.ok(updatedRequest);
     }
 }
