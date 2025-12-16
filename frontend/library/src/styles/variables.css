@@ -1,0 +1,26 @@
+:root {
+  /* Colors - Library/Decent Theme */
+  --color-primary: #007bff; /* Deep Blue - Buttons/Accents */
+  --color-secondary: #6c757d; /* Muted Gray - Secondary Text */
+  --color-accent: #28a745; /* Green - Success/Available */
+  --color-danger: #dc3545; /* Red - Overdue/Alerts */
+  --color-background: #f8f9fa; /* Light Gray - Page background */
+  --color-card: #ffffff; /* White - Card/Box background */
+  --color-text: #212529; /* Dark text */
+
+  /* Typography */
+  --font-family-sans: 'Inter', sans-serif;
+  --font-size-base: 16px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 40px;
+
+  /* Border Radius & Shadow */
+  --border-radius: 6px;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
