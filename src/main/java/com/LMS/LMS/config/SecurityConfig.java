@@ -66,6 +66,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/borrow/**").hasAuthority("ROLE_ADMIN")          // Issue/Return
                         .requestMatchers("/api/v1/report/**").hasAuthority("ROLE_ADMIN")          // Reporting
                         .requestMatchers("/api/v1/admin/stock-status").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/v1/admin/books/download-template").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/v1/admin/ai-reports/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/auth/**").permitAll()  // Login is public
+                        .requestMatchers("/api/ai/**").authenticated()
                         // 5. Any other request must be authenticated
                         .anyRequest().authenticated()
                 )

@@ -6,33 +6,28 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
+
 @Data
 @Document(collection = "books")
 public class Book {
-
     @Id
-    private String id; // MongoDB default ID
+    private String id;
 
     @Indexed(unique = true)
-    private String bookId; // The new, unique, user-facing ID (Requirement 1)
+    private String bookId;
 
     private String title;
     private String author;
     private String isbn;
-
-    private long totalStock;    // Changed to long for consistency
-    private long availableStock; // Changed to long for consistency
-
+    private long totalStock;
+    private long availableStock;
     private String category;
-    private double price; // For procurement tracking
+    private double price;
     private LocalDateTime dateAdded = LocalDateTime.now();
 
-    // --- NEW FIELDS FOR SHELF MANAGEMENT (Requirement: Find Book) ---
-    /**
-     * Unique identifier for the exact physical shelving location (e.g., Aisle-03-R2-S1).
-     * This links the book to the Shelf entity which holds the physical map coordinates.
-     */
-    private String shelfCode;
+    // --- UPDATED SHELF MANAGEMENT FIELDS ---
+    private String shelfCode; // Links to the physical coordinates (e.g., A-01-S03)
+    private String rackNumber; // Metadata for easier physical identification (e.g., RACK-01)
 
     public boolean isAvailable() {
         return availableStock > 0;

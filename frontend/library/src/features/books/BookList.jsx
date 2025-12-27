@@ -1,264 +1,217 @@
+// frontend/src/features/books/BookList.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { FaPlus, FaCloudUploadAlt, FaSearch, FaBookReader, FaRegEdit } from 'react-icons/fa';
+import { FaPlus, FaCloudUploadAlt, FaSearch, FaRegEdit, FaMapMarkerAlt, FaLayerGroup } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/Button';
 import bookApi from '../../api/bookApi';
-// Import Reservation logic and Redux dispatch
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux'; // Added useSelector
 import { placeHold } from '../borrow/ReservationSlice';
 
-// --- STYLED COMPONENTS (Retained for consistency) ---
+// --- STYLED COMPONENTS ---
 const PageWrap = styled.div`
   padding: calc(var(--spacing-xl) * 1.2);
   display: flex;
   justify-content: center;
+  background-color: #f9fafb;
+  min-height: 100vh;
 `;
 
 const Container = styled.div`
   width: 100%;
-  max-width: 1100px;
+  max-width: 1600px;
 `;
 
-/* Header & Controls */
 const InventoryHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  margin-bottom: calc(var(--spacing-lg) + 6px);
+  align-items: center;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
+  gap: 1rem;
 `;
 
 const TitleBlock = styled.div`
   h2 {
     margin: 0;
-    font-size: 1.45rem;
+    font-size: 1.6rem;
     color: #111827;
-    font-weight: 700;
+    font-weight: 800;
   }
   p {
-    margin: 6px 0 0;
+    margin: 4px 0 0;
     color: #6b7280;
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 `;
 
 const Controls = styled.div`
   display: flex;
-  gap: var(--spacing-md);
+  gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
 `;
 
-/* Search */
 const SearchBar = styled.form`
   display: flex;
   align-items: center;
-  width: 340px;
-  position: relative;
   background: #ffffff;
-  border: 1px solid rgba(18,18,20,0.06);
-  padding: 6px;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(30, 40, 50, 0.04);
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  width: 400px;
 
   input {
     border: none;
-    padding: 10px 12px 10px 40px;
+    padding: 8px;
     width: 100%;
     outline: none;
     font-size: 0.95rem;
-    color: #111827;
-    background: transparent;
   }
 
-  svg {
-    position: absolute;
-    left: 12px;
-    color: #9ca3af;
-    font-size: 0.95rem;
-  }
-
-  button {
-    margin-left: 8px;
-  }
-
-  padding: 10px 14px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  width: 320px;
-  transition: 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #444;
-  }
-
-  @media (max-width: 820px) {
-    width: 100%;
-  }
-
+  svg { color: #9ca3af; }
 `;
 
-/* Table wrapper */
 const TableWrapper = styled.div`
   background: #ffffff;
-  padding: var(--spacing-md);
-  border-radius: 12px;
-  border: 1px solid rgba(18,18,20,0.06);
-  box-shadow: 0 8px 30px rgba(30,40,50,0.04);
-  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 `;
 
-/* Table */
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
-  margin-top: var(--spacing-md);
-  font-size: 0.95rem;
-  color: #111827;
+  font-size: 0.9rem;
+
+  thead {
+    background-color: #f3f4f6;
+    border-bottom: 2px solid #e5e7eb;
+  }
 
   thead th {
     text-align: left;
-    padding: 12px;
+    padding: 16px;
     font-weight: 700;
-    color: #374151;
-    border-bottom: 1px solid rgba(18,18,20,0.06);
-    position: sticky;
-    top: 0;
-    background: #ffffff;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   tbody td {
-    padding: 12px;
-    border-bottom: 1px solid rgba(18,18,20,0.04);
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
     vertical-align: middle;
   }
 
   tbody tr:hover {
-    background: rgba(15, 23, 42, 0.02);
+    background-color: #f9fafb;
   }
 `;
 
-/* Status pill */
-const StatusPill = styled.span`
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.85rem;
+const Badge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: ${(props) => (props.$available > 0 ? '#065f46' : '#7f1d1d')};
-  background-color: ${(props) => (props.$available > 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.08)')};
-  border: 1px solid ${(props) => (props.$available > 0 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.08)')};
+  background: ${props => props.$type === 'shelf' ? '#eff6ff' : '#f5f3ff'};
+  color: ${props => props.$type === 'shelf' ? '#1d4ed8' : '#6d28d9'};
+  border: 1px solid ${props => props.$type === 'shelf' ? '#bfdbfe' : '#ddd6fe'};
 `;
 
-/* Small action button group */
-const ActionGroup = styled.div`
-  display: flex;
-  gap: 8px;
-  justify-content: center;
+const StatusPill = styled.span`
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: ${props => props.$available > 0 ? '#065f46' : '#991b1b'};
+  background: ${props => props.$available > 0 ? '#d1fae5' : '#fee2e2'};
 `;
-
 
 const BookList = ({ viewMode = 'student' }) => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-  const dispatch = useDispatch(); // Initialize Redux dispatch
+  const dispatch = useDispatch();
+
+  // --- 1. Get Logged-in User Data ---
+  const { user } = useSelector(state => state.auth);
+  // Robustly get student ID from either 'studentId' or 'id' property
+  const studentId = user?.studentId || user?.id;
 
   const isLibrarian = viewMode === 'admin';
 
-  // --- Data Fetching Logic (useCallback relies on these) ---
   const fetchBooks = useCallback(async (query = '') => {
-      setLoading(true);
-      try {
-        let data;
-        if (isLibrarian) {
-          // ADMIN calls search (returns ALL books)
-          data = await bookApi.getAllBooksAdmin(query);
-        } else {
-          // STUDENT calls available endpoint
-          data = await bookApi.getAvailableBooks(query);
-        }
-
-        if (Array.isArray(data)) {
-            setBooks(data);
-        } else {
-            setBooks([]);
-            console.error("API did not return an array for book list:", data);
-        }
-      } catch (error) {
-        console.error("Error fetching books:", error);
-        setBooks([]);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const data = isLibrarian
+        ? await bookApi.getAllBooksAdmin(query)
+        : await bookApi.getAvailableBooks(query);
+      setBooks(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      setBooks([]);
+    } finally {
+      setLoading(false);
+    }
   }, [isLibrarian]);
 
   useEffect(() => {
     fetchBooks(searchTerm);
-  }, [viewMode, fetchBooks, searchTerm]);
+  }, [fetchBooks, searchTerm]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchBooks(searchTerm);
-  };
-
-  // --- Student Action: Reservation (Integrated with Redux) ---
+  // --- 2. Dynamic Reservation Handler ---
   const handleReserve = async (bookId) => {
-    // Assuming loggedInUser and studentId are available via useSelector in a real scenario
-    // const studentId = useSelector(state => state.auth.user.studentId);
-    const placeholderStudentId = 'S-TEST-001'; // Placeholder
+    if (!studentId) {
+      alert("You must be logged in as a student to place a hold.");
+      return;
+    }
 
     try {
-      // Use Redux thunk to place the hold (Req 7)
-      await dispatch(placeHold({ bookId, studentId: placeholderStudentId })).unwrap();
-
-      alert('Book reserved successfully! You will be notified when it is available.');
+      // Dispatch placeHold with the REAL studentId
+      await dispatch(placeHold({ bookId, studentId })).unwrap();
+      alert('Book reserved successfully! Check your Reservations page.');
+      fetchBooks(searchTerm); // Refresh list to update availability if needed
     } catch (error) {
-      // The error object comes from the rejected promise payload
-      const errorMessage = error.response?.data?.message || "Failed to place reservation. Maybe you already reserved it?";
-      alert('Reservation Failed: ' + errorMessage);
+      alert('Reservation Failed: ' + (error.message || "Unknown error"));
     }
   };
-
-  // --- Student Action: View Book Details (CRITICAL FIX) ---
-  const handleViewBookDetail = (bookId) => {
-      // Navigate to the student detail route
-      navigate(`/student/books/${bookId}`);
-  };
-
 
   return (
     <PageWrap>
       <Container>
         <InventoryHeader>
           <TitleBlock>
-            <h2>{isLibrarian ? 'Library Inventory Management' : 'Browse Available Books'}</h2>
-            <p>{isLibrarian ? 'Manage library stock and details.' : 'Search and reserve books available to you.'}</p>
+            <h2>{isLibrarian ? 'Library Inventory Management' : 'Library Catalog'}</h2>
+            <p>{isLibrarian ? 'Monitor stock, locations, and pricing.' : 'Explore our collection and reserve your next read.'}</p>
           </TitleBlock>
 
           <Controls>
-            <SearchBar onSubmit={handleSearch}>
+            <SearchBar onSubmit={(e) => { e.preventDefault(); fetchBooks(searchTerm); }}>
               <FaSearch />
               <input
                 type="text"
-                placeholder="Search by Title, Author, or Book ID..."
+                placeholder="Search Title, Author, or ISBN..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <Button type="submit" style={{ padding: '8px 12px', borderRadius: 8 }}>Search</Button>
             </SearchBar>
 
             {isLibrarian && (
               <>
-                <Button onClick={() => navigate('/admin/books/add')} style={{ backgroundColor: 'var(--color-accent)', padding: '8px 12px', borderRadius: 8 }}>
-                  <FaPlus style={{ marginRight: 8 }} /> Add New Book
+                <Button onClick={() => navigate('/admin/books/add')} style={{ backgroundColor: '#10b981', color: 'white' }}>
+                  <FaPlus /> Add New
                 </Button>
-                <Button onClick={() => navigate('/admin/books/import')} style={{ padding: '8px 12px', borderRadius: 8 }}>
-                  <FaCloudUploadAlt style={{ marginRight: 8 }} /> Import Excel
+                <Button onClick={() => navigate('/admin/books/import')} style={{ backgroundColor: '#6366f1', color: 'white' }}>
+                  <FaCloudUploadAlt /> Import
                 </Button>
               </>
             )}
@@ -266,63 +219,84 @@ const BookList = ({ viewMode = 'student' }) => {
         </InventoryHeader>
 
         {loading ? (
-          <p>Loading book data...</p>
+          <p style={{ textAlign: 'center', padding: '2rem' }}>Loading Inventory...</p>
         ) : (
           <TableWrapper>
-            <StyledTable className="data-table" role="table" aria-label="Book inventory table">
+            <StyledTable>
               <thead>
                 <tr>
                   <th>Book ID</th>
-                  <th>Title</th>
-                  <th>Author</th>
+                  <th>Book Details</th>
                   <th>Category</th>
-                  <th style={{ textAlign: 'center' }}>Available</th>
-                  {isLibrarian && <th style={{ textAlign: 'center' }}>Total Stock</th>}
+                  <th>Location Mapping</th>
+                  <th>Pricing</th>
+                  <th style={{ textAlign: 'center' }}>Stock Status</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
-
               <tbody>
                 {books.map((book) => (
                   <tr key={book.bookId}>
-                    <td>{book.bookId}</td>
-                    <td style={{ fontWeight: 600 }}>{book.title}</td>
-                    <td>{book.author}</td>
-                    <td>{book.category}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <StatusPill $available={book.availableStock}>
-                        {book.availableStock > 0 ? 'Available' : 'Out of Stock'}
-                      </StatusPill>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 600, color: '#4b5563' }}>
+                      {book.bookId}
                     </td>
-                    {isLibrarian && <td style={{ textAlign: 'center' }}>{book.totalStock}</td>}
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#111827' }}>{book.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>by {book.author}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>ISBN: {book.isbn || 'N/A'}</div>
+                    </td>
+                    <td>
+                      <span style={{ background: '#f3f4f6', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>
+                        {book.category}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Badge $type="shelf"><FaMapMarkerAlt size={10} /> {book.shelfCode || 'No Shelf'}</Badge>
+                        <Badge $type="rack"><FaLayerGroup size={10} /> {book.rackNumber || 'No Rack'}</Badge>
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 600, color: '#059669' }}>
+                      ${book.price?.toFixed(2)}
+                    </td>
                     <td style={{ textAlign: 'center' }}>
-                        <ActionGroup>
-                          {isLibrarian ? (
-                              // ADMIN: MANAGE Button
-                              <Button
-                                  onClick={() => navigate(`/admin/books/manage/${book.bookId}`)} // ADMIN CRUD PATH
-                                  style={{ backgroundColor: 'var(--color-primary)', padding: '8px 10px', borderRadius: 8 }}
-                              >
-                                  <FaRegEdit /> Manage
-                              </Button>
-                          ) : (
-                              // STUDENT: RESERVE or VIEW Button
-                              book.availableStock <= 0 ? (
-                                // Student: Reserve (Req 7)
-                                <Button onClick={() => handleReserve(book.bookId)} style={{ padding: '8px 10px', borderRadius: 8, backgroundColor: '#f59e0b' }}>
-                                  <FaBookReader /> Reserve
-                                </Button>
-                              ) : (
-                                // Student: View/Borrow (Req 6) - CRITICAL FIX
-                                <Button
-                                    onClick={() => handleViewBookDetail(book.bookId)} // Navigate to detail page
-                                    style={{ padding: '8px 10px', borderRadius: 8, background: '#22c55e', color: '#fff' }}
-                                >
-                                  View
-                                </Button>
-                              )
+                      <div style={{ marginBottom: '4px' }}>
+                        <StatusPill $available={book.availableStock}>
+                          {book.availableStock > 0 ? 'Available' : 'Out of Stock'}
+                        </StatusPill>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        {book.availableStock} / {book.totalStock} Copies
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {isLibrarian ? (
+                        <Button
+                          onClick={() => navigate(`/admin/books/manage/${book.bookId}`)}
+                          style={{ backgroundColor: '#3b82f6', padding: '6px 12px', fontSize: '0.85rem' }}
+                        >
+                          <FaRegEdit /> Manage
+                        </Button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          {/* --- 3. Corrected Student Navigation --- */}
+                          <Button
+                            onClick={() => navigate(`/student/books/${book.bookId}`)}
+                            style={{ background: '#10b981', padding: '6px 12px', fontSize: '0.85rem' }}
+                          >
+                            View
+                          </Button>
+
+                          {book.availableStock <= 0 && (
+                            <Button
+                              onClick={() => handleReserve(book.bookId)}
+                              style={{ backgroundColor: '#f59e0b', padding: '6px 12px', fontSize: '0.85rem' }}
+                            >
+                              Reserve
+                            </Button>
                           )}
-                        </ActionGroup>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

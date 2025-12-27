@@ -22,6 +22,11 @@ public class BookService {
                 .toList();
     }
 
+    public List<Book> getAllBooksForCatalog() {
+        // Return ALL books so students can see and reserve out-of-stock items
+        return bookRepository.findAll();
+    }
+
     // Requirement 2: Search books by keyword (title/author/ISBN/BookId)
     public List<Book> searchBooks(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {

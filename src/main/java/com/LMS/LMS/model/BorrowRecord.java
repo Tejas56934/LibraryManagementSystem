@@ -25,4 +25,8 @@ public class BorrowRecord {
 
     private BorrowStatus status = BorrowStatus.ISSUED;
     private boolean notificationSent = false;
+
+    public Object getBorrowDate() {
+        return null;
+    }
 }

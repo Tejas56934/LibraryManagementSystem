@@ -40,16 +40,17 @@ const getAvailableBooks = async (searchQuery = '') => {
 
 
 export const findBookLocation = async (bookId) => {
-    const url = `${API_URL}admin/shelf/location/${bookId}`;
-    // Requires authentication, so use getAuthHeaders
+    // Path matches @GetMapping("/location/{bookId}") in ShelfController
+    const url = `${API_URL}shelf/location/${bookId}`;
     const response = await axios.get(url, getAuthHeaders());
-    return response.data; // Returns Shelf object with mapX/mapY
+    return response.data;
 };
 
 export const getAllShelves = async () => {
-    const url = `${API_URL}admin/shelf/admin`;
+    // Path matches @GetMapping("/all") in ShelfController
+    const url = `${API_URL}shelf/all`;
     const response = await axios.get(url, getAuthHeaders());
-    return response.data; // Returns List of Shelf objects
+    return response.data;
 };
 
 // Admin Endpoint: Fetches ALL books for management (Requirement 2 for Admin)
@@ -125,12 +126,12 @@ const importExcel = async (file) => {
 // CRITICAL NEW FUNCTION: Download Book Template
 const downloadBookTemplate = async () => {
   try {
+    const authHeaders = getAuthHeaders(); // Reuse existing function
+
     const response = await axios.get(
-      "http://localhost:8080/api/v1/admin/books/download-template",
+      `${API_URL}admin/books/download-template`, // Use API_URL constant
       {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("user")).token}`,
-        },
+        ...authHeaders,
         responseType: "blob",
       }
     );
@@ -144,9 +145,14 @@ const downloadBookTemplate = async () => {
     link.download = "LMS_Book_Inventory_Template.xlsx";
     link.click();
 
+    // Clean up the URL object
+    window.URL.revokeObjectURL(link.href);
+
   } catch (error) {
-    console.error("DOWNLOAD FAILED:", error);
-    alert("Download failed. Check ADMIN login.");
+    console.error("Download failed - Full error:", error);
+    console.error("Response data:", error.response?.data);
+    console.error("Status code:", error.response?.status);
+    alert(`Download failed: ${error.response?.status || 'Network error'} - ${error.message}`);
   }
 };
 

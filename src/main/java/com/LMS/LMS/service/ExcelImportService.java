@@ -16,41 +16,44 @@ import java.util.UUID;
 public class ExcelImportService {
 
     @Autowired
-    BookRepository bookRepository;
+    private BookRepository bookRepository;
 
+    /**
+     * Requirement 9: Acquisition & Inventory Management
+     * Process Excel file to import books along with physical shelf mapping.
+     */
     public void saveBooksFromExcel(MultipartFile file) {
-
         try {
-            // CRITICAL STEP 1: Process the InputStream to get a list of Book objects
-            // This is where POI processing happens, which can throw RuntimeExceptions (e.g., data type mismatch)
+            // CRITICAL STEP 1: Parse the file.
+            // The ExcelHelper.excelToBooks method must be updated to handle the new columns.
             List<Book> books = ExcelHelper.excelToBooks(file.getInputStream());
 
-            // Check if any data was parsed before proceeding
             if (books.isEmpty()) {
-                System.out.println("Excel parsed successfully, but no valid rows with data found.");
                 throw new IllegalArgumentException("The uploaded Excel file contains no valid book data rows.");
             }
 
-            // 1. Assign unique bookId (Requirement 1)
+            // 1. Finalize Book Data (Assign unique IDs and double-check stock)
             books.forEach(book -> {
-                // Generate and assign the unique ID
-                book.setBookId("BK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                // Requirement 1: Assign unique user-facing ID
+                if (book.getBookId() == null || book.getBookId().isEmpty()) {
+                    book.setBookId("BK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+                }
+
+                // Initialize available stock to match total stock for new imports
+                book.setAvailableStock(book.getTotalStock());
             });
 
-            // 2. Save all books to MongoDB
+            // 2. Save all books to MongoDB (Bulk insertion)
             bookRepository.saveAll(books);
-            System.out.println("Successfully imported and saved " + books.size() + " books to MongoDB.");
+            System.out.println("Successfully imported " + books.size() + " books with shelf mapping.");
 
         } catch (IOException e) {
-            // Catches file I/O errors (e.g., inability to read the file stream)
-            System.err.println("FATAL I/O ERROR during Excel import: " + e.getMessage());
+            System.err.println("FATAL I/O ERROR: " + e.getMessage());
             throw new RuntimeException("Failed to read Excel file stream: " + e.getMessage(), e);
 
         } catch (RuntimeException e) {
-            // Catches errors thrown by ExcelHelper (parsing issues like NumberFormatException)
             System.err.println("EXCEL DATA PROCESSING ERROR: " + e.getMessage());
-            // Re-throw with context to inform the Controller/Frontend
-            throw new RuntimeException("Excel data validation failed. Check cell formats or required columns: " + e.getMessage(), e);
+            throw new RuntimeException("Excel data validation failed. Ensure 'Shelf Code' and 'Rack Number' columns exist: " + e.getMessage(), e);
         }
     }
 }

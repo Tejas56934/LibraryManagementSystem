@@ -80,7 +80,7 @@ const handleDownloadTemplate = async (e) => {
     e.preventDefault();
     try {
       // 1. Call the API to get the Blob (file data)
-      const blob = await bookApi.downloadTemplate();
+      const blob = await bookApi.downloadBookTemplate();
 
       // 2. Create a temporary URL for the Blob
       const url = window.URL.createObjectURL(blob);

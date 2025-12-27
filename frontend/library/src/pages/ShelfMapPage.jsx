@@ -1,212 +1,296 @@
-// frontend/src/pages/shared/ShelfMapPage.jsx (FINAL VERSION)
-
-import React, { useState, useCallback, useEffect } from 'react'; // Added useEffect
+// frontend/src/pages/shared/ShelfMapPage.jsx
+import React, { useState, useCallback, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FaMapMarkerAlt, FaSearch } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaSearch, FaInfoCircle, FaMap, FaExclamationTriangle } from 'react-icons/fa';
 import bookApi from '../api/bookApi';
-import Button from '../components/Button'; // Assuming Button component path
+import Button from '../components/Button';
 
 // --- Styled Components ---
 
-const MapContainer = styled.div`
-    padding: var(--spacing-xl);
-    background-color: var(--color-background);
+const PageWrapper = styled.div`
+    padding: 30px;
+    background-color: #f8f9fa;
     min-height: 100vh;
+    font-family: 'Inter', sans-serif;
 `;
 
-const MapCard = styled.div`
+const ContentCard = styled.div`
+    max-width: 1200px;
+    margin: 0 auto;
     background: white;
-    border-radius: 10px;
-    box-shadow: var(--shadow-md);
-    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
 `;
 
-const SearchBar = styled.div`
+const HeaderSection = styled.div`
+    padding: 24px;
+    border-bottom: 1px solid #edf2f7;
+
+    h2 {
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #2d3748;
+    }
+
+    p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.95rem;
+    }
+`;
+
+const ControlPanel = styled.div`
+    padding: 20px 24px;
+    background: #fdfdfd;
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1px solid #edf2f7;
+
+    .search-wrapper {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
 
     input {
-        flex-grow: 1;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+        }
     }
-    button {
-        padding: 10px 15px;
-        /* Using the Button component now */
+
+    svg.search-icon {
+        position: absolute;
+        left: 14px;
+        color: #a0aec0;
     }
 `;
 
-const LibraryMap = styled.div`
+const MapViewport = styled.div`
     position: relative;
     width: 100%;
-    height: 600px;
-    background-color: #f0f0f0; /* Map background */
-    background-image: repeating-linear-gradient(0deg, #ddd, #ddd 1px, transparent 1px, transparent 50px),
-                      repeating-linear-gradient(90deg, #ddd, #ddd 1px, transparent 1px, transparent 50px);
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    height: 550px;
+    background-color: #f7fafc;
+    /* Clean blueprint grid effect */
+    background-image:
+        linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+        linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+    background-size: 40px 40px;
+    border: 1px solid #e2e8f0;
     overflow: hidden;
 `;
 
 const TargetMarker = styled(FaMapMarkerAlt)`
     position: absolute;
-    color: var(--color-danger);
-    font-size: 30px;
-    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8));
+    color: #e53e3e;
+    font-size: 34px;
+    filter: drop-shadow(0 0 8px rgba(229, 62, 62, 0.6));
+    z-index: 100;
+
     animation: ${keyframes`
         0%, 100% { transform: translate(-50%, -100%) scale(1); }
-        50% { transform: translate(-50%, -100%) scale(1.2); }
-    `} 1.5s infinite;
+        50% { transform: translate(-50%, -115%) scale(1.1); }
+    `} 1.2s ease-in-out infinite;
 
-    /* Position based on coordinates fetched from backend (0-100 range expected) */
     left: ${props => props.$x}%;
     top: ${props => props.$y}%;
-    z-index: 10;
-    pointer-events: none; /* Allows clicks/interactions on layers beneath */
+    pointer-events: none;
 `;
 
-const ShelfMarker = styled.div`
+const ShelfNode = styled.div`
     position: absolute;
-    width: ${props => props.$width}px; /* Example fixed size */
-    height: ${props => props.$height}px; /* Example fixed size */
-    background: var(--color-secondary);
-    opacity: 0.6;
+    width: 24px;
+    height: 45px;
+    background: #cbd5e0;
+    border: 1px solid #a0aec0;
     border-radius: 3px;
-    cursor: default;
-    /* Position based on coordinates fetched from backend (0-100 range expected) */
     left: ${props => props.$x}%;
     top: ${props => props.$y}%;
-    transform: translate(-50%, -50%); /* Center the shelf marker */
+    transform: translate(-50%, -50%);
+    transition: all 0.2s;
+    opacity: 0.5;
 
     &:hover {
-        opacity: 0.9;
-        box-shadow: 0 0 5px var(--color-primary);
-        z-index: 5;
+        opacity: 1;
+        background: #4a5568;
+        cursor: help;
+        z-index: 50;
     }
 `;
 
+const LocationFooter = styled.div`
+    padding: 24px;
+    background: #f8fafc;
+    border-top: 1px solid #edf2f7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .info-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #718096;
+        font-weight: 600;
+    }
+
+    .value {
+        font-size: 1.15rem;
+        color: #2d3748;
+        font-weight: 700;
+    }
+
+    .shelf-badge {
+        background: #ebf8ff;
+        color: #2b6cb0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        border: 1px solid #bee3f8;
+    }
+`;
+
+const StatusMessage = styled.div`
+    padding: 10px 24px;
+    background: ${props => props.$isError ? '#fff5f5' : '#ebf8ff'};
+    color: ${props => props.$isError ? '#c53030' : '#2b6cb0'};
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+`;
 
 const ShelfMapPage = () => {
     const [bookId, setBookId] = useState('');
-    const [location, setLocation] = useState(null); // Holds the target Shelf object (mapX, mapY)
-    const [allShelves, setAllShelves] = useState([]); // Holds all defined shelves for background map
+    const [location, setLocation] = useState(null);
+    const [allShelves, setAllShelves] = useState([]);
     const [loading, setLoading] = useState(false);
     const [mapLoading, setMapLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [mapError, setMapError] = useState(null);
 
-    // Fetch the entire map layout (all shelves) on component mount
     useEffect(() => {
         const fetchMapLayout = async () => {
-            setMapLoading(true);
             try {
-                // This fetches all shelf definitions (map structure)
                 const shelves = await bookApi.getAllShelves();
                 setAllShelves(shelves);
             } catch (err) {
-                setMapError("Could not load library map layout. Check Admin API endpoint.");
+                console.error("Map Layout Error:", err);
             } finally {
                 setMapLoading(false);
             }
         };
-
-        // Only load the layout once
         fetchMapLayout();
     }, []);
 
     const handleSearch = useCallback(async () => {
-        if (!bookId) {
-            setError("Please enter a Book ID.");
-            setLocation(null);
-            return;
-        }
-
+        if (!bookId.trim()) return;
         setLoading(true);
         setError(null);
-        setLocation(null);
-
         try {
-            // Find the location using the new API function
             const shelf = await bookApi.findBookLocation(bookId);
-
-            // Assume mapX/mapY are normalized 0-100 percentage values
             setLocation(shelf);
-
         } catch (err) {
-            // Display a user-friendly error from the server (ResourceNotFoundException)
-            const msg = err.response?.data?.message || "Book location not found or not mapped.";
-            setError(msg);
+            setLocation(null);
+            setError(err.response?.data?.message || "Book not found in current inventory.");
         } finally {
             setLoading(false);
         }
     }, [bookId]);
 
-    // Map coordinates for rendering
-    const mapX = location?.mapX || 0;
-    const mapY = location?.mapY || 0;
-
     return (
-        <MapContainer>
-            <MapCard>
-                <h2>📚 Find Book Location</h2>
-                <p>Enter a Book ID (ISBN, unique ID, etc.) to view its physical location on the library map.</p>
+        <PageWrapper>
+            <ContentCard>
+                <HeaderSection>
+                    <h2><FaMap color="var(--color-primary)" /> Library Navigation</h2>
+                    <p>Locate any book physically within the library floors.</p>
+                </HeaderSection>
 
-                <SearchBar>
-                    <input
-                        type="text"
-                        placeholder="Enter Book ID (e.g., CS-001)"
-                        value={bookId}
-                        onChange={(e) => setBookId(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                    <Button onClick={handleSearch} disabled={loading || mapLoading}>
-                        <FaSearch /> {loading ? 'Searching...' : 'Find'}
+                <ControlPanel>
+                    <div className="search-wrapper">
+                        <FaSearch className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Enter Book ID or ISBN (e.g., BK-12345)"
+                            value={bookId}
+                            onChange={(e) => setBookId(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                    </div>
+                    <Button onClick={handleSearch} disabled={loading} style={{ minWidth: '120px' }}>
+                        {loading ? 'Locating...' : 'Find Location'}
                     </Button>
-                </SearchBar>
+                </ControlPanel>
 
-                {error && <p style={{ color: 'red', marginBottom: '15px' }}>{error}</p>}
-                {mapError && <p style={{ color: 'red', marginBottom: '15px' }}>{mapError}</p>}
+                {error && (
+                    <StatusMessage $isError>
+                        <FaExclamationTriangle /> {error}
+                    </StatusMessage>
+                )}
 
-                <LibraryMap>
-                    {mapLoading && <p style={{ textAlign: 'center', paddingTop: '100px' }}>Loading Map Layout...</p>}
-
-                    {/* 1. Render all static shelves */}
-                    {!mapLoading && allShelves.map((shelf) => (
-                        <ShelfMarker
-                            key={shelf.shelfCode}
-                            $x={shelf.mapX}
-                            $y={shelf.mapY}
-                            $width={20} // Placeholder size
-                            $height={40} // Placeholder size
-                            title={`${shelf.shelfCode} - ${shelf.locationDescription}`}
-                        />
-                    ))}
-
-                    {/* 2. Render the dynamic target marker */}
-                    {location && (
-                        <TargetMarker
-                            $x={mapX}
-                            $y={mapY}
-                            title={`TARGET: ${location.shelfCode}`}
-                        />
+                <MapViewport>
+                    {mapLoading ? (
+                        <div style={{ padding: '100px', textAlign: 'center', color: '#718096' }}>
+                            Initialize Map Grid...
+                        </div>
+                    ) : (
+                        <>
+                            {allShelves.map((shelf) => (
+                                <ShelfNode
+                                    key={shelf.shelfCode}
+                                    $x={shelf.mapX}
+                                    $y={shelf.mapY}
+                                    title={`${shelf.shelfCode}: ${shelf.locationDescription}`}
+                                />
+                            ))}
+                            {location && (
+                                <TargetMarker
+                                    $x={location.mapX}
+                                    $y={location.mapY}
+                                    title="You're looking for this!"
+                                />
+                            )}
+                        </>
                     )}
-                </LibraryMap>
+                </MapViewport>
 
                 {location && (
-                    <div style={{ marginTop: '20px', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                        Book Location: <span style={{ color: 'var(--color-primary)' }}>{location.locationDescription}</span>
-                        <br/>
-                        Shelf Code: <span style={{ color: 'var(--color-accent)' }}>{location.shelfCode}</span>
-                        <br/>
-                        <p style={{ marginTop: '5px', fontSize: '0.9rem', color: '#666' }}>
-                            (Note: Pathfinding feature would show the shortest route on the map.)
-                        </p>
-                    </div>
+                    <LocationFooter>
+                        <div className="info-group">
+                            <div className="label">Physical Location</div>
+                            <div className="value">{location.locationDescription}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#718096', marginTop: '4px' }}>
+                                <FaInfoCircle style={{ marginRight: '5px' }} />
+                                Shortest route: Ground floor entrance, turn left at Aisle A.
+                            </div>
+                        </div>
+                        <div className="shelf-badge">
+                            {location.shelfCode}
+                        </div>
+                    </LocationFooter>
                 )}
-            </MapCard>
-        </MapContainer>
+            </ContentCard>
+        </PageWrapper>
     );
 };
 

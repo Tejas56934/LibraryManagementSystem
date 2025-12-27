@@ -2,63 +2,125 @@ package com.LMS.LMS.service;
 
 import com.LMS.LMS.dto.AIReportRequest;
 import com.LMS.LMS.dto.AIReportResponse;
+import com.LMS.LMS.model.Book;
+import com.LMS.LMS.model.BorrowRecord;
+import com.LMS.LMS.model.Student;
+import com.LMS.LMS.repository.BookRepository;
+import com.LMS.LMS.repository.BorrowRepository;
+import com.LMS.LMS.repository.StudentRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AIReportService {
 
-    // --- MOCK Implementation for Requirement 10 (AI Part) ---
+    @Autowired
+    private GroqService groqService;
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private BorrowRepository borrowRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public AIReportResponse generateDynamicReport(AIReportRequest request) {
 
-        // In the future, this is where you would:
-        // 1. Fetch raw data from MongoDB (BorrowRecords, Student data, etc.)
-        // 2. Format the data and send it to an external AI endpoint (e.g., Gemini API).
-        // 3. Receive the structured JSON report back from the AI.
+        // 1. Fetch Raw Data (Limited)
+        List<Book> rawBooks = bookRepository.findAll().stream().limit(25).collect(Collectors.toList());
+        List<Student> rawStudents = studentRepository.findAll().stream().limit(25).collect(Collectors.toList());
+        List<BorrowRecord> rawLoans = borrowRepository.findAll().stream().limit(25).collect(Collectors.toList());
 
-        // For now, we return a mock response based on the request query
+        // 2. SANITIZE DATA (The Fix)
+        // We manually build simple maps to ensure NO images, NO heavy text, NO recursion.
+        Map<String, Object> simplifiedSnapshot = new HashMap<>();
 
-        String query = request.getQuery().toLowerCase();
-
-        // Mock data for "student reading records"
-        if (query.contains("student record") || query.contains("top reader")) {
-            return AIReportResponse.builder()
-                    .summary("The following is a dynamic record of the top three students who have borrowed the most books in the library's history.")
-                    .tableHeaders(Arrays.asList("Student ID", "Name", "Total Books Borrowed", "Current Overdue Count"))
-                    .tableData(Arrays.asList(
-                            Map.of("Student ID", "S-101", "Name", "Alice Johnson", "Total Books Borrowed", 18, "Current Overdue Count", 0),
-                            Map.of("Student ID", "S-102", "Name", "Bob Williams", "Total Books Borrowed", 15, "Current Overdue Count", 2),
-                            Map.of("Student ID", "S-103", "Name", "Charlie Brown", "Total Books Borrowed", 12, "Current Overdue Count", 0)
-                    ))
-                    .generatedAt(LocalDateTime.now().toString())
-                    .build();
+        // Simplify Books
+        List<Map<String, Object>> simpleBooks = new ArrayList<>();
+        for (Book b : rawBooks) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("title", b.getTitle());
+            m.put("author", b.getAuthor());
+            m.put("category", b.getCategory());
+            m.put("stock", b.getAvailableStock());
+            simpleBooks.add(m);
         }
+        simplifiedSnapshot.put("books", simpleBooks);
 
-        // Mock data for "money flow"
-        if (query.contains("money record") || query.contains("financial")) {
-            return AIReportResponse.builder()
-                    .summary("Dynamic report detailing recent financial flow, including late fees collected and book procurement expenses.")
-                    .tableHeaders(Arrays.asList("Transaction Date", "Type", "Amount", "Reference ID"))
-                    .tableData(Arrays.asList(
-                            Map.of("Transaction Date", "2025-11-28", "Type", "Late Fee", "Amount", 5.00, "Reference ID", "BR-990"),
-                            Map.of("Transaction Date", "2025-11-29", "Type", "Procurement", "Amount", -245.50, "Reference ID", "PO-105"),
-                            Map.of("Transaction Date", "2025-11-30", "Type", "Late Fee", "Amount", 2.50, "Reference ID", "BR-991")
-                    ))
-                    .generatedAt(LocalDateTime.now().toString())
-                    .build();
+        // Simplify Students
+        List<Map<String, Object>> simpleStudents = new ArrayList<>();
+        for (Student s : rawStudents) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", s.getStudentId()); // or s.getId()
+            m.put("name", s.getName());
+            // m.put("email", s.getEmail()); // Add only if needed
+            simpleStudents.add(m);
         }
+        simplifiedSnapshot.put("students", simpleStudents);
 
-        // Default response
-        return AIReportResponse.builder()
-                .summary("The AI model needs more specific context. Try querying for 'student record' or 'money flow record'.")
-                .tableHeaders(Arrays.asList("Status", "Message"))
-                .tableData(List.of(Map.of("Status", "Failed", "Message", "Invalid Query")))
-                .generatedAt(LocalDateTime.now().toString())
-                .build();
+        // Simplify Loans
+        List<Map<String, Object>> simpleLoans = new ArrayList<>();
+        for (BorrowRecord r : rawLoans) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("bookId", r.getBookId());
+            m.put("studentId", r.getStudentId());
+            m.put("status", r.getStatus()); // ISSUED, RETURNED
+            m.put("borrowDate", r.getBorrowDate() != null ? r.getBorrowDate().toString() : "");
+            simpleLoans.add(m);
+        }
+        simplifiedSnapshot.put("loans", simpleLoans);
+
+
+        try {
+            // 3. Convert Simplified Map to JSON
+            String contextJson = objectMapper.writeValueAsString(simplifiedSnapshot);
+
+            // DEBUG: Print payload size to Console to prove it's small now
+            System.out.println("✅ Generated Clean Context Size: " + contextJson.length() + " chars");
+
+            // 4. Send to AI
+            String rawAiResponse = groqService.getAIAnalysis(request.getQuery(), contextJson);
+
+            // 5. Clean & Parse
+            String cleanJson = cleanAiResponse(rawAiResponse);
+            AIReportResponse response = objectMapper.readValue(cleanJson, AIReportResponse.class);
+
+            if (response.getGeneratedAt() == null) {
+                response.setGeneratedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+            }
+
+            return response;
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Print full error to console
+            AIReportResponse errorResponse = new AIReportResponse();
+            errorResponse.setSummary("System Error: " + e.getMessage());
+            return errorResponse;
+        }
+    }
+
+    private String cleanAiResponse(String response) {
+        if (response == null) return "{}";
+        if (response.contains("```json")) {
+            return response.replace("```json", "").replace("```", "").trim();
+        } else if (response.contains("```")) {
+            return response.replace("```", "").trim();
+        }
+        return response;
     }
 }

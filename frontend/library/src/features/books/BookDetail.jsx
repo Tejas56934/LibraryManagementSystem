@@ -249,7 +249,7 @@ const BookDetail = ({ viewMode = 'admin' }) => {
 
     // --- Reservation Action (Student Only - Req 7) ---
     const handlePlaceHold = () => {
-        if (!studentId || !book) {
+        if (!studentId || !bookId) {
             alert("Login required or book details missing.");
             return;
         }
@@ -259,6 +259,8 @@ const BookDetail = ({ viewMode = 'admin' }) => {
                 .unwrap()
                 .then(() => {
                     alert('Hold successfully placed! Check your reservations page.');
+                    // Optionally navigate to reservations page or update UI state here
+                    // navigate('/student/reservations'); // Uncomment if you want immediate redirect
                 })
                 .catch(err => {
                     const msg = err.message || err.response?.data?.message || 'Failed to place hold.';
@@ -399,15 +401,26 @@ const BookDetail = ({ viewMode = 'admin' }) => {
                             )
                         ) : (
                             // STUDENT ACTIONS (Req 6 & 7)
+                            // Only allow Borrow if available, otherwise offer Hold
                             isAvailable ? (
-                                <Button type="button" onClick={() => console.log('Initiate Borrow Process')} style={{ backgroundColor: '#22c55e', padding: '10px 16px', borderRadius: 8 }}>
-                                    Borrow Book ({availableStock} Available)
-                                </Button>
-                            ) : (
-                                <Button type="button" onClick={handlePlaceHold} style={{ backgroundColor: '#f59e0b', padding: '10px 16px', borderRadius: 8 }}>
-                                    Place Hold / Reserve (Req 7)
-                                </Button>
-                            )
+                                    // Requirement 6: If available, show Borrow
+                                    <Button
+                                        type="button"
+                                        onClick={() => console.log('Initiate Borrow Process')}
+                                        style={{ backgroundColor: '#22c55e', padding: '10px 16px', borderRadius: 8 }}
+                                    >
+                                        Borrow Book ({availableStock} Available)
+                                    </Button>
+                                ) : (
+                                    // Requirement 7: If NOT available, show Reserve
+                                    <Button
+                                        type="button"
+                                        onClick={handlePlaceHold}
+                                        style={{ backgroundColor: '#f59e0b', padding: '10px 16px', borderRadius: 8 }}
+                                    >
+                                        Place Hold / Reserve
+                                    </Button>
+                                )
                         )}
 
                         {/* Common Back Button */}
