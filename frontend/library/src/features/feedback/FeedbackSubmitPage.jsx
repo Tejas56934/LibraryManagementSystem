@@ -3,11 +3,10 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { submitNewFeedback } from '../../api/feedbackApi';
-import styled from 'styled-components'; // Import styled for form consistency
+import styled from 'styled-components';
 import Card from '../../components/Card';
-import Button from '../../components/Button';
 
-// --- STYLED COMPONENTS for Form Inputs (Adopted from BookDetail.jsx) ---
+// --- STYLED COMPONENTS ---
 const FormInput = styled.input`
     width: 100%;
     padding: 10px 12px;
@@ -44,10 +43,21 @@ const FormTextArea = styled.textarea`
 `;
 
 const FormSelect = styled.select`
-    // Inherit input styles for consistency
-    ${FormInput}
-    appearance: none; /* Remove default arrow */
-    padding-right: 30px; /* Space for a custom arrow if needed */
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(18, 18, 20, 0.08);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #111827;
+    background: #ffffff;
+    outline: none;
+    appearance: none;
+    transition: box-shadow 0.12s ease, border-color 0.12s ease;
+
+    &:focus {
+        box-shadow: 0 4px 12px rgba(59,130,246,0.08);
+        border-color: rgba(59,130,246,0.6);
+    }
 `;
 
 const FormGroup = styled.div`
@@ -60,20 +70,41 @@ const FormGroup = styled.div`
         font-size: 0.92rem;
     }
 `;
+
+// Standard HTML Button with Styles (Guarantees click works)
+const SubmitButton = styled.button`
+    padding: 12px 24px;
+    background-color: #2563eb;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+
+    &:hover {
+        background-color: #1d4ed8;
+    }
+
+    &:disabled {
+        background-color: #93c5fd;
+        cursor: not-allowed;
+    }
+`;
 // --- END STYLED COMPONENTS ---
 
-
 const FeedbackSubmitPage = () => {
-    const dispatch = useDispatch();
-    // Assuming auth state gives us the logged-in student's details
-    const { user: loggedInUser, isAuthenticated } = useSelector(state => state.auth);
+    // Safe Selector: Adds || {} to prevent crash if state.auth is undefined
+    const { user: loggedInUser, isAuthenticated } = useSelector(state => state.auth || {});
 
     const [formData, setFormData] = useState({
-        type: 'ACQUISITION_REQUEST', // Default to book request
+        type: 'ACQUISITION_REQUEST',
         requestedBookTitle: '',
         requestedBookAuthor: '',
         message: '',
     });
+
     const [submissionStatus, setSubmissionStatus] = useState(null); // 'success', 'error', 'loading'
 
     const handleChange = (e) => {
@@ -82,35 +113,40 @@ const FeedbackSubmitPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log("Submit button clicked!"); // Debug log 1
 
-        if (!isAuthenticated) {
+        if (!isAuthenticated || !loggedInUser) {
             alert("You must be logged in to submit a request.");
+            console.error("User not authenticated");
+            return;
+        }
+
+        console.log("User is authenticated:", loggedInUser.id); // Debug log 2
+
+        // Validation
+        if (formData.type === 'ACQUISITION_REQUEST' && !formData.requestedBookTitle.trim()) {
+            alert('Please enter a book title for your acquisition request.');
             return;
         }
 
         setSubmissionStatus('loading');
 
-        // Basic validation for acquisition request
-        if (formData.type === 'ACQUISITION_REQUEST' && !formData.requestedBookTitle.trim()) {
-            alert('Please enter a book title for your acquisition request.');
-            setSubmissionStatus(null);
-            return;
-        }
-
         try {
             const payload = {
                 ...formData,
-                // Attach user context from Redux state (CRITICAL for backend tracking)
-                submitterId: loggedInUser.studentId || loggedInUser.id, // Use studentId or generic ID
+                submitterId: loggedInUser.studentId || loggedInUser.id,
                 submitterRole: loggedInUser.role || 'STUDENT',
             };
 
-            // Call the API function to submit the feedback/request
+            console.log("Sending payload:", payload); // Debug log 3
+
+            // API Call
             await submitNewFeedback(payload);
 
             setSubmissionStatus('success');
+            console.log("Submission successful!");
 
-            // Clear the form after successful submission
+            // Reset form
             setFormData({
                 type: 'ACQUISITION_REQUEST',
                 requestedBookTitle: '',
@@ -121,7 +157,7 @@ const FeedbackSubmitPage = () => {
         } catch (error) {
             setSubmissionStatus('error');
             console.error('Submission failed:', error);
-            alert(`Submission failed. Error: ${error.message || 'Check console.'}`);
+            alert(`Submission failed: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -145,7 +181,6 @@ const FeedbackSubmitPage = () => {
                         </FormSelect>
                     </FormGroup>
 
-                    {/* Show book request fields only if type is ACQUISITION_REQUEST */}
                     {formData.type === 'ACQUISITION_REQUEST' && (
                         <>
                             <FormGroup>
@@ -155,7 +190,7 @@ const FeedbackSubmitPage = () => {
                                     name="requestedBookTitle"
                                     value={formData.requestedBookTitle}
                                     onChange={handleChange}
-                                    required={true}
+                                    required
                                     placeholder="e.g., The Hitchhiker's Guide to the Galaxy"
                                 />
                             </FormGroup>
@@ -179,20 +214,26 @@ const FeedbackSubmitPage = () => {
                             value={formData.message}
                             onChange={handleChange}
                             rows="4"
-                            placeholder="Provide any additional details or context here."
+                            placeholder="Provide any additional details..."
                         />
                     </FormGroup>
 
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={submissionStatus === 'loading'}
-                    >
+                    {/* REPLACED CUSTOM BUTTON WITH DIRECT STYLED BUTTON TO ENSURE IT WORKS */}
+                    <SubmitButton type="submit" disabled={submissionStatus === 'loading'}>
                         {submissionStatus === 'loading' ? 'Submitting...' : 'Submit Request'}
-                    </Button>
+                    </SubmitButton>
 
-                    {submissionStatus === 'success' && <p className="text-success mt-3">Thank you! Your request has been submitted successfully to the librarian.</p>}
-                    {submissionStatus === 'error' && <p className="text-danger mt-3">Submission failed. Please check your connection and try again.</p>}
+                    {submissionStatus === 'success' && (
+                        <p className="text-success mt-3" style={{ color: 'green', fontWeight: 'bold' }}>
+                            ✅ Request submitted successfully!
+                        </p>
+                    )}
+
+                    {submissionStatus === 'error' && (
+                        <p className="text-danger mt-3" style={{ color: 'red' }}>
+                            ❌ Submission failed. Check connection.
+                        </p>
+                    )}
 
                 </form>
             </Card>

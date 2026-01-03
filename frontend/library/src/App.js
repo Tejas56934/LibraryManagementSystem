@@ -22,6 +22,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          // In App.js
+          <Route path="/admin/reports/detail/:reportKey" element={<ReportDetailPage />} />
         </Routes>
 
         {/* 2. The Widget - NO CONDITIONS, JUST RENDER IT */}

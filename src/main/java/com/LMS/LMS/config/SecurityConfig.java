@@ -70,6 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/ai-reports/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/auth/**").permitAll()  // Login is public
                         .requestMatchers("/api/ai/**").authenticated()
+                        .requestMatchers("/api/v1/admin/report/**").hasAuthority("ROLE_ADMIN")
                         // 5. Any other request must be authenticated
                         .anyRequest().authenticated()
                 )

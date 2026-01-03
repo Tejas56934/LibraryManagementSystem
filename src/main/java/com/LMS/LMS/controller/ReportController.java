@@ -1,18 +1,19 @@
 package com.LMS.LMS.controller;
 
+import com.LMS.LMS.dto.PurchaseOrderDTO;
 import com.LMS.LMS.dto.ReportResponse;
 import com.LMS.LMS.dto.StockStatusDTO;
-import com.LMS.LMS.dto.PurchaseOrderDTO; // CRITICAL: New Import
+import com.LMS.LMS.dto.report.CategoryMetricDTO;
+import com.LMS.LMS.dto.report.DailyUsageDTO;
 import com.LMS.LMS.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -24,11 +25,19 @@ public class ReportController {
     @Autowired
     private ReportService reportService;
 
+    // ==================================================================================
+    // 1. DASHBOARD & BASIC METRICS
+    // ==================================================================================
+
     @GetMapping("/basic-stats")
     public ResponseEntity<ReportResponse> getBasicReport() {
         ReportResponse report = reportService.generateBasicReport();
         return ResponseEntity.ok(report);
     }
+
+    // ==================================================================================
+    // 2. STOCK & INVENTORY REPORTS
+    // ==================================================================================
 
     @GetMapping("/stock-status")
     public ResponseEntity<List<StockStatusDTO>> getInventoryStockStatus(
@@ -39,7 +48,6 @@ public class ReportController {
         return ResponseEntity.ok(data);
     }
 
-    // --- NEW ENDPOINT: Low Stock Alerts ---
     @GetMapping("/low-stock")
     public ResponseEntity<List<StockStatusDTO>> getLowStockAlerts(
             @RequestParam(required = false) String category,
@@ -49,20 +57,26 @@ public class ReportController {
         return ResponseEntity.ok(data);
     }
 
-    // --- NEW ENDPOINT: Purchase Order History ---
+    // ==================================================================================
+    // 3. PURCHASE ORDER HISTORY (New Requirement)
+    // ==================================================================================
+
     @GetMapping("/purchase-history")
     public ResponseEntity<List<PurchaseOrderDTO>> getPurchaseOrderHistory(
             @RequestParam(required = false) Map<String, String> filters) {
 
-        // The service method handles fetching dummy or real data based on the filters
+        // Passing all query params as a map (e.g., ?startDate=2024-01-01&vendor=Global)
         List<PurchaseOrderDTO> data = reportService.getPurchaseOrderHistory(filters);
         return ResponseEntity.ok(data);
     }
 
+    // ==================================================================================
+    // 4. GENERIC FILE EXPORT (PDF/Excel)
+    // ==================================================================================
 
-    // --- CRITICAL NEW GENERIC EXPORT ENDPOINT ---
     /**
-     * GET /api/v1/admin/report/export/generic?reportKey={key}&format={format}
+     * Universal Export Endpoint.
+     * Usage: /api/v1/admin/report/export/generic?reportKey=inventory-stock&format=PDF
      */
     @GetMapping("/export/generic")
     public ResponseEntity<byte[]> exportGenericReport(
@@ -71,26 +85,58 @@ public class ReportController {
             @RequestParam(defaultValue = "PDF") String format) {
 
         try {
+            // Generate the file bytes from the service
             byte[] fileBytes = reportService.generateReportFile(reportKey, filters, format);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
 
-            // Set dynamic filename based on key
-            String filename = String.format("%s_Report_%d.%s", reportKey.toUpperCase(), System.currentTimeMillis(), format.toLowerCase());
+            // Set Content-Type based on format
+            if ("PDF".equalsIgnoreCase(format)) {
+                headers.setContentType(MediaType.APPLICATION_PDF);
+            } else {
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            }
+
+            // Generate a dynamic filename (e.g., INVENTORY-STOCK_Report_1719292.pdf)
+            String filename = String.format("%s_Report_%d.%s",
+                    reportKey.toUpperCase(),
+                    System.currentTimeMillis(),
+                    format.toLowerCase());
+
             headers.setContentDispositionFormData("attachment", filename);
             headers.setContentLength(fileBytes.length);
 
             return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
 
+        } catch (UnsupportedOperationException e) {
+            // Return 400 if they ask for a report key that doesn't exist
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
+    // NAAC 4.2.4 Endpoint
+    @GetMapping("/naac/daily-usage")
+    public ResponseEntity<List<DailyUsageDTO>> getDailyUsage(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        // You can pass dummy dates or parse them
+        // For now, let's assume the service handles defaults or you pass null
+        return ResponseEntity.ok(reportService.getDailyUsageStats(null, null));
+    }
 
-    // Original export endpoint (kept for compatibility)
+    // NAAC 4.2.3 Endpoint
+    @GetMapping("/naac/category-stats")
+    public ResponseEntity<List<CategoryMetricDTO>> getCategoryStats() {
+        return ResponseEntity.ok(reportService.getCategoryUsageStats());
+    }
+
+    // ==================================================================================
+    // 5. LEGACY EXPORTS (Kept for backward compatibility)
+    // ==================================================================================
+
     @GetMapping("/export/activity-summary")
     public ResponseEntity<byte[]> exportActivitySummaryPdf() {
         try {
@@ -102,7 +148,6 @@ public class ReportController {
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 
         } catch (Exception e) {
-            e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

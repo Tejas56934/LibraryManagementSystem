@@ -1,9 +1,16 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { FaChartBar, FaUserGraduate, FaClipboardList, FaClock, FaRobot, FaChevronRight } from 'react-icons/fa';
+import {
+    FaChartBar,
+    FaUserGraduate,
+    FaClipboardList,
+    FaRobot,
+    FaChevronRight,
+    FaUniversity // Added for NAAC Icon
+} from 'react-icons/fa';
 
-// --- Styled Components ---
+// --- Styled Components (Kept same as yours) ---
 const HubContainer = styled.div`
     padding: var(--spacing-xl);
 `;
@@ -35,7 +42,6 @@ const SectionHeader = styled.div`
     border-bottom: 2px solid rgba(140, 158, 255, 0.2);
 `;
 
-// --- NEW TABLE STYLES ---
 const ReportTable = styled.table`
     width: 100%;
     border-collapse: collapse;
@@ -76,7 +82,7 @@ const ReportDescriptionCell = styled.td`
     font-size: 0.9rem;
 `;
 
-// --- DATA MAPPING (Remains the same) ---
+// --- DATA MAPPING ---
 const ReportKeyMap = [
     {
         icon: FaClipboardList,
@@ -87,9 +93,18 @@ const ReportKeyMap = [
             { key: 'purchase-order-history', name: 'Purchase Order History Report', desc: 'Detailed log of all vendor purchase orders.' }
         ]
     },
+    // --- NEW NAAC SECTION ADDED HERE ---
+    {
+        icon: FaUniversity,
+        title: "II. NAAC & Audit Compliance Reports (Crit. 4.2)",
+        reports: [
+            { key: 'daily-footfall', name: 'Daily Library Usage (Footfall)', desc: 'Per-day student visit analysis required for NAAC 4.2.4.' },
+            { key: 'category-expenditure', name: 'Department-wise Expenditure', desc: 'Financial breakdown of book purchases by department.' },
+        ]
+    },
     {
         icon: FaUserGraduate,
-        title: "II. Student Activity & Behavior Reports",
+        title: "III. Student Activity & Behavior Reports",
         reports: [
             { key: 'late-returns', name: 'Student Late Return Pattern Report', desc: 'Analyzes late return frequency, average delay, and fines by student.' },
             { key: 'top-borrowers', name: 'Top Borrowers Report', desc: 'Ranks students by volume of books borrowed over a period.' },
@@ -98,21 +113,19 @@ const ReportKeyMap = [
     },
     {
         icon: FaRobot,
-        title: "VI. AI-based Advanced Analytical Reports",
+        title: "IV. AI-based Advanced Analytical Reports",
         reports: [
             { key: 'demand-forecast', name: 'AI Book Demand Forecast Report', desc: 'Predicts future book popularity based on trends and curriculum.' },
             { key: 'replacement-damage-forecast', name: 'AI Replacement & Damage Forecast', desc: 'Predicts which assets will need replacement soon.' }
         ]
     },
-    // ... Other sections (Loan, Timer-based, Vendor) would follow here
 ];
 
 const ReportHub = () => {
     const navigate = useNavigate();
 
-    // Handler to navigate to the dynamic report detail page
     const handleReportClick = (reportKey) => {
-        // Example: Navigates to /admin/reports/detail/late-returns
+        // Navigates to the Detail Page
         navigate(`/admin/reports/detail/${reportKey}`);
     };
 

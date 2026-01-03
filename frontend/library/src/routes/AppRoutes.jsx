@@ -10,6 +10,8 @@ import StudentLayout from '../layouts/StudentLayout';
 import AdminDashboard from '../pages/AdminDashboard';
 import StudentDashboard from '../pages/StudentDashboard';
 import ShelfMapPage from '../pages/ShelfMapPage';
+import AdminScanner from '../pages/AdminScanner'; // Import it
+
 
 // --- FEATURE IMPORTS ---
 import BookList from '../features/books/BookList';
@@ -101,6 +103,7 @@ const AppRoutes = () => {
             <Route path="books/manage/:bookId" element={<BookDetail />} />
             <Route path="shelf/location" element={<ShelfMapPage />} />
             <Route path="shelf/location/:bookId" element={<ShelfMapPage />} />
+            <Route path="scan" element={<AdminScanner />} />
 
             {/* Student Management */}
             <Route path="students" element={<StudentList />} />
@@ -154,8 +157,7 @@ const AppRoutes = () => {
             <Route path="find-book" element={<ShelfMapPage />} />
 
             {/* Feedback */}
-            <Route path="request-book" element={<FeedbackSubmitPage />} />
-
+<Route path="feedback/submit" element={<FeedbackSubmitPage />} />
             {/* Notifications */}
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="reading-log" element={<ReadingLog />} />

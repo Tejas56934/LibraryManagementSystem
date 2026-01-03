@@ -27,6 +27,15 @@ const FETCHERS = {
     api: reportApi.getPurchaseOrderHistory,
     title: 'Purchase Order History Report',
   },
+  // --- NEW NAAC REPORTS ---
+  'daily-footfall': {
+    api: reportApi.getDailyFootfall, // Ensure this exists in reportApi.js
+    title: 'Daily Library Usage (NAAC 4.2.4)',
+  },
+  'category-expenditure': {
+    api: reportApi.getCategoryExpenditure, // Ensure this exists in reportApi.js
+    title: 'Department-wise Expenditure & Usage',
+  },
 };
 
 /* =======================
@@ -105,6 +114,7 @@ const ReportDetailPage = () => {
     setTitle(config.title);
 
     try {
+      // Pass empty object as filters for now, or extend if needed
       const data = await config.api({});
       setReportData(data || []);
     } catch (error) {
@@ -131,7 +141,7 @@ const ReportDetailPage = () => {
     try {
       setTitle(`Exporting ${config.title}...`);
 
-      const pdfBlob = await reportApi.exportGenericReport(
+      const pdfBlob = await reportApi.exportActivitySummaryPdf(
         reportKey,
         {},
         'PDF'
@@ -166,6 +176,7 @@ const ReportDetailPage = () => {
      REPORT RENDERERS
   ======================= */
 
+  // 1. Late Returns
   const renderLateReturnsReport = () => (
     <>
       <p>
@@ -198,6 +209,7 @@ const ReportDetailPage = () => {
     </>
   );
 
+  // 2. Stock Reports (Inventory & Low Stock)
   const renderStockTable = (insight) => (
     <>
       <p>
@@ -238,6 +250,7 @@ const ReportDetailPage = () => {
     </>
   );
 
+  // 3. Purchase Orders
   const renderPurchaseOrders = () => (
     <>
       <p>
@@ -283,6 +296,61 @@ const ReportDetailPage = () => {
     </>
   );
 
+  // 4. NAAC: Daily Footfall
+  const renderDailyFootfall = () => (
+    <>
+      <p>
+        <strong>NAAC Compliance (4.2.4):</strong> This data validates per-day usage of library by teachers and students.
+      </p>
+
+      <Table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Total Books Issued</th>
+            <th>Unique Visitors (Footfall)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reportData.map((item, index) => (
+            <tr key={index}>
+              <td>{item.date}</td>
+              <td>{item.totalIssues}</td>
+              <td>{item.studentCount || item.totalIssues /* Fallback if studentCount null */}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </>
+  );
+
+  // 5. NAAC: Category Stats
+  const renderCategoryStats = () => (
+    <>
+      <p>
+        <strong>NAAC Compliance (4.2.3):</strong> Annual expenditure and usage distribution by department.
+      </p>
+      <Table>
+        <thead>
+          <tr>
+            <th>Department / Category</th>
+            <th>Total Usage Count</th>
+            <th>% of Total Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reportData.map((item, index) => (
+            <tr key={index}>
+              <td>{item.category}</td>
+              <td>{item.usageCount}</td>
+              <td>-</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </>
+  );
+
   /* =======================
      MAIN RENDER
   ======================= */
@@ -318,6 +386,10 @@ const ReportDetailPage = () => {
             'CRITICAL: Below reorder threshold. Immediate procurement required.'
           )}
         {reportKey === 'purchase-order-history' && renderPurchaseOrders()}
+
+        {/* --- NAAC SECTIONS --- */}
+        {reportKey === 'daily-footfall' && renderDailyFootfall()}
+        {reportKey === 'category-expenditure' && renderCategoryStats()}
 
         {reportData.length === 0 && (
           <p style={{ textAlign: 'center', color: 'var(--color-secondary)' }}>

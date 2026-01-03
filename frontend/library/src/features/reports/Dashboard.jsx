@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { FaBookOpen, FaUserGraduate, FaExchangeAlt, FaClock, FaCalendarTimes, FaTags, FaChartLine, FaRobot, FaSearch, FaArrowRight } from 'react-icons/fa';
+import { FaBookOpen, FaUserGraduate, FaExchangeAlt, FaClock, FaCalendarTimes, FaTags, FaChartLine, FaRobot, FaSearch, FaArrowRight, FaQrcode, FaBarcode } from 'react-icons/fa';
 import Card from '../../components/Card';
 import reportApi from '../../api/reportApi';
 import Button from '../../components/Button';
-import aiReportApi from '../../api/aiReportApi'; // <--- NEW IMPORT for the AI section
+import aiReportApi from '../../api/aiReportApi';
+import { useNavigate } from 'react-router-dom';
 
 // --- ANIMATIONS ---
 const fadeIn = keyframes`
@@ -70,9 +71,6 @@ const KeyMetricsGrid = styled.div`
   margin-bottom: 3rem;
 `;
 
-// Note: Ensure your Card component handles 'color' prop correctly,
-// or wrap it in a styled div if needed. Assuming Card works as is.
-
 const SectionTitle = styled.h3`
   font-size: 1.25rem;
   color: #0f172a;
@@ -95,6 +93,74 @@ const ActivityGrid = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+// --- ADDED PLUGIN STYLES HERE ---
+const PluginGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+`;
+
+const PluginCard = styled.div`
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+  }
+
+  .icon-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    transition: transform 0.2s;
+  }
+
+  &:hover .icon-box {
+    transform: scale(1.1);
+  }
+
+  div {
+    flex: 1;
+  }
+
+  h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .arrow {
+    color: #cbd5e1;
+    transition: color 0.2s;
+  }
+
+  &:hover .arrow {
+    color: #6366f1;
   }
 `;
 
@@ -377,7 +443,6 @@ const handleGenerateReport = useCallback(async () => {
     setAiLoading(true);
     setAiReport(null);
     try {
-      // ✅ UPDATE: Use the new API file here
       const data = await aiReportApi.getAIReport(aiQuery);
       setAiReport(data);
     } catch (error) {
@@ -452,6 +517,7 @@ const handleGenerateReport = useCallback(async () => {
 const Dashboard = () => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // ✅ FIXED: Hook is now used
 
   // Modernized Palette
   const cardColors = {
@@ -508,6 +574,7 @@ const Dashboard = () => {
       <DashboardHeader>
         <div>
           <h2>Librarian Dashboard</h2>
+
           <p>
             <FaClock />
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -517,6 +584,34 @@ const Dashboard = () => {
           Admin View
         </div>
       </DashboardHeader>
+            <SectionTitle><FaQrcode /> Quick Actions</SectionTitle>
+
+            {/* PLUGINS SECTION */}
+            <PluginGrid>
+              {/* PLUGIN 1: SCAN STUDENTS */}
+              <PluginCard onClick={() => navigate('/admin/scan')}>
+                  <div className="icon-box" style={{ background: '#e0e7ff', color: '#4338ca' }}>
+                      <FaUserGraduate />
+                  </div>
+                  <div>
+                      <h4>Scan Student ID</h4>
+                      <p>Digital Check-in & Instant Issue</p>
+                  </div>
+                  <FaArrowRight className="arrow" />
+              </PluginCard>
+
+              {/* PLUGIN 2: SCAN BOOKS */}
+              <PluginCard onClick={() => navigate('/admin/books')}>
+                  <div className="icon-box" style={{ background: '#dcfce7', color: '#15803d' }}>
+                      <FaBarcode />
+                  </div>
+                  <div>
+                      <h4>Scan Book ISBN</h4>
+                      <p>Quick Inventory Lookup & Add</p>
+                  </div>
+                  <FaArrowRight className="arrow" />
+              </PluginCard>
+            </PluginGrid>
 
       <KeyMetricsGrid>
         <Card title="Students Registered" value={reportData.totalStudents} color={cardColors.totalStudents} icon={FaUserGraduate} />
@@ -573,6 +668,8 @@ const Dashboard = () => {
           </StyledTable>
         </TableContainer>
       </ActivityGrid>
+
+
 
       <AIReportingSection />
     </DashboardContainer>

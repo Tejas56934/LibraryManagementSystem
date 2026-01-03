@@ -77,6 +77,33 @@ const MenuIcon = styled.div`
 const NavList = styled.div`
   flex-grow: 1;
   padding: 0 var(--spacing-sm);
+
+  /* --- NEW SCROLLBAR LOGIC --- */
+  overflow-y: auto; /* Enables vertical scrolling */
+  overflow-x: hidden; /* Hides horizontal scrollbar */
+
+  /* Custom Scrollbar Styling (Webkit browsers like Chrome/Safari) */
+  &::-webkit-scrollbar {
+    width: 5px; /* Thin scrollbar */
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent; /* Track matches the dark background */
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); /* Subtle semi-transparent thumb */
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(140, 158, 255, 0.6); /* Brighter color on hover */
+  }
+
+  /* Firefox Scrollbar Support */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 `;
 
 const NavItem = styled(NavLink)`

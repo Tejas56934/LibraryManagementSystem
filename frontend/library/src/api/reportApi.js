@@ -165,6 +165,31 @@ export const exportActivitySummaryPdf = async () => {
     throw error;
   }
 };
+export const getDailyFootfall = async (filters) => {
+  try {
+    const config = getAuthHeaders();
+    // Maps to Backend: /api/v1/admin/report/naac/daily-usage
+    const response = await axios.get(`${API_BASE_URL}/naac/daily-usage`, { ...config, params: filters });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching daily footfall:', error);
+    throw error;
+  }
+};
+
+export const getCategoryExpenditure = async (filters) => {
+  try {
+    const config = getAuthHeaders();
+    // Maps to Backend: /api/v1/admin/report/naac/category-stats
+    const response = await axios.get(`${API_BASE_URL}/naac/category-stats`, { ...config, params: filters });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error fetching category stats:', error);
+    throw error;
+  }
+};
+
+
 
 // Export API object (FINAL EXPORT)
 const reportApi = {
@@ -175,6 +200,8 @@ const reportApi = {
   getLowStockAlerts,
   getPurchaseOrderHistory, // CRITICAL: Added new function
   exportGenericReport,
+  getDailyFootfall,
+  getCategoryExpenditure,
 };
 
 export default reportApi;
