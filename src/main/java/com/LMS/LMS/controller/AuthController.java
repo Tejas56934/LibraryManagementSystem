@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -33,6 +34,7 @@ public class AuthController {
     // -----------------------------------------
     //               LOGIN
     // -----------------------------------------
+    @CrossOrigin(origins = "https://libraai.netlify.app")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> createAuthenticationToken(@RequestBody LoginRequest loginRequest) {
 
