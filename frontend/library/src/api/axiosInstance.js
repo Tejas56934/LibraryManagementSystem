@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // The base URL for the backend API controllers
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'https://lms-backend-tejas.onrender.com';
 
 const axiosInstance = axios.create({
     baseURL: BASE_URL,
