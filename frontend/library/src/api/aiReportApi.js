@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Pointing to your specific AI Controller
-const API_URL = 'http://localhost:8080/api/v1/admin/ai-reports';
+const API_URL = 'https://lms-backend-tejas.onrender.com/api/v1/admin/ai-reports';
 
 const getAuthHeaders = () => {
     const user = JSON.parse(localStorage.getItem('user'));
