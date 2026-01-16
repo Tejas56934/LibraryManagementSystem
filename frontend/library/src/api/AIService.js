@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Ensure this matches your Backend Port
-const API_URL = "http://localhost:8080/api/ai";
+const API_URL = "https://lms-backend-tejas.onrender.com";
 
 class AIService {
 
