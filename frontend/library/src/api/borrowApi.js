@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1/admin/borrow/';
+const API_URL = 'https://lms-backend-tejas.onrender.com/api/v1/admin/borrow/';
 
 const getAuthHeaders = () => {
   const user = JSON.parse(localStorage.getItem('user'));
