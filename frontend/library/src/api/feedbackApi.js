@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1/admin/feedback';
+const API_URL = 'https://lms-backend-tejas.onrender.com/api/v1/admin/feedback';
 
 // Assuming apiClient is configured for authentication
 const apiClient = axios.create({
