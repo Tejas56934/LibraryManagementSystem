@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/api/v1/admin";
+const BASE_URL = "https://lms-backend-tejas.onrender.com/api/v1/admin";
 
 // Read JWT from localStorage
 const getAuthHeaders = () => {
