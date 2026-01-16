@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Correct BASE URL — must match Spring Boot Controller path
-const API_BASE_URL = 'http://localhost:8080/api/v1/admin/report';
+const API_BASE_URL = 'https://lms-backend-tejas.onrender.com/api/v1/admin/report';
 
 // Utility function to get the current user's token
 const getAuthHeaders = () => {
