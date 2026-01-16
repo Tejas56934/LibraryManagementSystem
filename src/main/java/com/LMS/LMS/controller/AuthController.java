@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.CrossOrigin; 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@CrossOrigin(origins = "https://libraai.netlify.app")
 public class AuthController {
 
     @Autowired
@@ -34,7 +36,6 @@ public class AuthController {
     // -----------------------------------------
     //               LOGIN
     // -----------------------------------------
-    @CrossOrigin(origins = "https://libraai.netlify.app")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> createAuthenticationToken(@RequestBody LoginRequest loginRequest) {
 
